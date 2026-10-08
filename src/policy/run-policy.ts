@@ -19,6 +19,8 @@ import {
 export interface ScopeContext {
   source: 'im' | 'card' | 'comment' | 'meeting';
   chatId?: string;
+  /** Fork delta: raw chat mode for agent backends that need p2p/group/topic semantics. */
+  chatMode?: 'p2p' | 'group' | 'topic';
   threadId?: string;
   actorId: string;
   commentScopeId?: string;

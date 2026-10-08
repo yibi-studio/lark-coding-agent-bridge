@@ -258,6 +258,12 @@ export async function handleCommentMention(deps: CommentDeps): Promise<void> {
 
       const execution = await deps.executor.submit({
         scopeId: runScopeId,
+        ctx: {
+          chatId: agentSessionScopeId,
+          senderId: evt.operator.openId,
+          scopeId: runScopeId,
+          source: 'comment',
+        },
         policy,
         sessionId,
         threadId,

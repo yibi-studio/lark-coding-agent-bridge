@@ -141,6 +141,14 @@ export async function startRunFlow(input: StartRunFlowInput): Promise<StartRunFl
   try {
     execution = await input.executor.submit({
       scopeId: input.scopeId,
+      ctx: {
+        chatId: input.scope.chatId,
+        threadId: input.scope.threadId,
+        chatMode: input.scope.chatMode,
+        senderId: input.scope.actorId,
+        scopeId: input.scopeId,
+        source: input.scope.source,
+      },
       policy,
       sessionId,
       threadId,

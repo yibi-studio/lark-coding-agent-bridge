@@ -1,4 +1,5 @@
 import { ClaudeAdapter } from '../agent/claude/adapter';
+import { TyphiaAdapter } from '../agent/typhia/adapter';
 import { CodexAdapter } from '../agent/codex/adapter';
 import { AgentPreflightError, type AgentAvailability } from '../agent/preflight';
 import type { AgentAdapter } from '../agent/types';
@@ -33,6 +34,9 @@ export function createRuntimeAgent(
             : {}),
         }
       : undefined;
+  if (profileConfig.agentKind === 'typhia') {
+    return new TyphiaAdapter();
+  }
   if (profileConfig.agentKind === 'codex') {
     const codex = profileConfig.codex;
     if (!codex?.binaryPath) {

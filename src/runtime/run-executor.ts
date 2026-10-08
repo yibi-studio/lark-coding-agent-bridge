@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { AgentAdapter, AgentEvent, AgentRun } from '../agent/types';
+import type { AgentAdapter, AgentEvent, AgentRun, AgentRunContext } from '../agent/types';
 import { ActiveRuns, type RunHandle } from '../bot/active-runs';
 import { ProcessPool } from '../bot/process-pool';
 import type { RunPolicyAllow } from '../policy/run-policy';
@@ -17,6 +17,7 @@ export interface RunExecutorDeps {
 
 export interface SubmitRunInput {
   scopeId: string;
+  ctx?: AgentRunContext;
   policy: RunPolicyAllow;
   sessionId?: string;
   threadId?: string;
@@ -96,6 +97,7 @@ export class RunExecutor {
     const runOptions = {
       runId,
       prompt: input.policy.prompt,
+      ctx: input.ctx,
       cwd: input.policy.cwdRealpath,
       sessionId: input.sessionId,
       threadId: input.threadId,

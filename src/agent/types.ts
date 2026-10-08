@@ -28,9 +28,20 @@ export type AgentEvent =
 
 export const CLAUDE_DEFAULT_PERMISSION_MODE: ClaudePermissionMode = 'bypassPermissions';
 
+/** Chat identity threaded to the agent backend (fork delta for typhia). */
+export interface AgentRunContext {
+  chatId?: string;
+  threadId?: string;
+  senderId: string;
+  chatMode?: 'p2p' | 'group' | 'topic';
+  scopeId: string;
+  source: 'im' | 'card' | 'comment' | 'meeting';
+}
+
 export interface AgentRunOptions {
   runId: string;
   prompt: string;
+  ctx?: AgentRunContext;
   cwd?: string;
   sessionId?: string;
   threadId?: string;

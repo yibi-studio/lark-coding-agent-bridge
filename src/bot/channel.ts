@@ -952,6 +952,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
   const scopeContext: ScopeContext = {
     source: 'im',
     chatId,
+    chatMode: mode,
     actorId: firstMsg.senderId,
     ...(threadId ? { threadId } : {}),
   };
