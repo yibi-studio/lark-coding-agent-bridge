@@ -59,6 +59,7 @@ import { ActiveRuns, type RunHandle } from './active-runs';
 import { ChatModeCache, type ChatMode } from './chat-mode-cache';
 import { handleCommentMention } from './comments';
 import { recordRunSessionEvent, startRunFlow } from './run-flow';
+import { sendManagedCard } from '../card/managed';
 import { commandSessionCatalogIdentity } from './session-catalog-identity';
 import { startKeepalive } from './keepalive';
 import { PendingQueue } from './pending-queue';
@@ -1106,6 +1107,9 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
           idleTimeoutMs,
           recordSession,
           async () => {},
+          async (card) => {
+            await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
+          },
         );
         await cotDone;
         if (cotPublisher.degradedReason) {
@@ -1167,6 +1171,9 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
           if (cardCtrl) {
             await cardCtrl.update(renderCard(filterForPrefs(state), cardRenderOptions));
           }
+        },
+        async (card) => {
+          await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
         },
       );
       try {
@@ -1234,7 +1241,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
           }
         },
         async (card) => {
-          await channel.send(chatId, { card: card as object }, sendOpts);
+          await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
         },
       );
       try {
@@ -1278,6 +1285,9 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
         idleTimeoutMs,
         recordSession,
         async () => {},
+        async (card) => {
+          await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
+        },
       );
       await sendFinalReply({
         channel,

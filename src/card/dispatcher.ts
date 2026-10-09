@@ -7,6 +7,7 @@ import type { ProcessPool } from '../bot/process-pool';
 import type { CallbackAuth } from './callback-auth';
 import { runCommandHandler, type CommandContext, type Controls } from '../commands';
 import { TyphiaAdapter, forwardCardAction } from '../agent/typhia/adapter';
+import { updateManagedCard } from './managed';
 import { log } from '../core/logger';
 import { canUseDm, canUseGroup } from '../policy/access';
 import type { RunExecutor } from '../runtime/run-executor';
@@ -150,16 +151,27 @@ export async function handleCardAction(deps: CardDispatchDeps): Promise<void> {
       senderId: operatorId,
     });
     let updatedInPlace = false;
+    let viaManaged = false;
     if (r.card) {
-      // cardUpdate: re-render the clicked card in place (state cards — current
-      // marker moves, pagination flips). Fallback: send as a new message.
+      // cardUpdate: re-render the clicked card in place. CardKit managed cards
+      // (updateCardById) re-render live on clients; raw PATCH is the legacy
+      // fallback (server-side correct, client refresh may lag).
       if (r.cardUpdate && typeof deps.evt.messageId === 'string') {
-        updatedInPlace = await deps.channel
-          .updateCard(deps.evt.messageId, r.card as object)
-          .then(() => true)
-          .catch((err) => {
-            log.warn('cardAction', 'typhia-card-update-failed', { err: String(err) });
-            return false;
+        const messageId = deps.evt.messageId;
+        updatedInPlace = await updateManagedCard(deps.channel, messageId, r.card as object)
+          .then(() => {
+            viaManaged = true;
+            return true;
+          })
+          .catch(async (err) => {
+            log.info('cardAction', 'typhia-card-managed-miss', { err: String(err) });
+            try {
+              await deps.channel.updateCard(messageId, r.card as object);
+              return true;
+            } catch (err2) {
+              log.warn('cardAction', 'typhia-card-update-failed', { err: String(err2) });
+              return false;
+            }
           });
       }
       if (!updatedInPlace) {
@@ -168,8 +180,9 @@ export async function handleCardAction(deps: CardDispatchDeps): Promise<void> {
         );
       }
     }
-    if (r.toast && !updatedInPlace) {
-      // In-place update IS the feedback; text toast only when no update happened.
+    if (r.toast && !viaManaged) {
+      // Live CardKit update IS the feedback; keep the text toast otherwise
+      // (raw-PATCH updates may lag on clients; failures need visible feedback).
       await deps.channel.send(chatId, { text: r.toast }).catch((err) =>
         log.warn('cardAction', 'typhia-feedback-failed', { err: String(err) }),
       );
