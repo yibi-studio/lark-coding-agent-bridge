@@ -168,4 +168,31 @@ export class TyphiaAdapter implements AgentAdapter {
   }
 }
 
+/** Forward a foreign card-action click to the daemon's original handler. */
+export async function forwardCardAction(
+  adapter: TyphiaAdapter,
+  input: { value: unknown; chatId: string; senderId: string },
+): Promise<{ ok: boolean; toast?: string }> {
+  const token = (adapter as unknown as { token?: string }).token;
+  const daemonUrl = (adapter as unknown as { daemonUrl: string }).daemonUrl;
+  const fetchImpl = (adapter as unknown as { fetchImpl: typeof fetch }).fetchImpl;
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    ...(token ? { 'x-agent-token': token } : {}),
+  };
+  try {
+    const r = await fetchImpl(`${daemonUrl}/agent/card-action`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ value: input.value, chatId: input.chatId, senderId: input.senderId }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!r.ok) return { ok: false };
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; toast?: string };
+    return { ok: j.ok !== false, toast: typeof j.toast === 'string' ? j.toast : undefined };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export type { AgentRunContext };

@@ -6,6 +6,7 @@ import type { PendingQueue } from '../bot/pending-queue';
 import type { ProcessPool } from '../bot/process-pool';
 import type { CallbackAuth } from './callback-auth';
 import { runCommandHandler, type CommandContext, type Controls } from '../commands';
+import { TyphiaAdapter, forwardCardAction } from '../agent/typhia/adapter';
 import { log } from '../core/logger';
 import { canUseDm, canUseGroup } from '../policy/access';
 import type { RunExecutor } from '../runtime/run-executor';
@@ -135,6 +136,26 @@ export async function handleCardAction(deps: CardDispatchDeps): Promise<void> {
   if (BRIDGE_CALLBACK_MARKER in payload) {
     if (!verifyBridgeToken(deps, payload, scope, 'agent_callback')) return;
     forwardToAgent(deps, payload, formValue, scope, threadId, mode);
+    return;
+  }
+
+  // Fork delta: foreign payload (no cmd, no bridge markers) on a typhia
+  // backend — round-trip the click to the backend's original card-action
+  // handler and relay its feedback into the chat (bridge has no native
+  // toast channel; a message is its idiom for command feedback).
+  if (deps.agent instanceof TyphiaAdapter) {
+    const r = await forwardCardAction(deps.agent, {
+      value: payload,
+      chatId,
+      senderId: operatorId,
+    });
+    if (r.toast) {
+      await deps.channel.send(chatId, { text: r.toast }).catch((err) =>
+        log.warn('cardAction', 'typhia-feedback-failed', { err: String(err) }),
+      );
+    } else if (!r.ok) {
+      log.warn('cardAction', 'typhia-forward-failed', { scope });
+    }
     return;
   }
 

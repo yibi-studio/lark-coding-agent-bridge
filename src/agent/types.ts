@@ -10,6 +10,9 @@ export type AgentEvent =
   | { type: 'thinking'; delta: string }
   | { type: 'tool_use'; id: string; name: string; input: unknown }
   | { type: 'tool_result'; id: string; output: string; isError: boolean }
+  // Fork delta: backend-issued interactive card (verbatim Feishu card JSON;
+  // button values round-trip to the backend's card-action endpoint).
+  | { type: 'card'; card: unknown }
   | {
       type: 'usage';
       inputTokens?: number;

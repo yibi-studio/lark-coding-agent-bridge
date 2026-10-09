@@ -1233,6 +1233,9 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
             await markdownCtrl.setContent(renderText(filterForPrefs(state)));
           }
         },
+        async (card) => {
+          await channel.send(chatId, { card: card as object }, sendOpts);
+        },
       );
       try {
         await awaitRenderAwareStream({
@@ -1561,6 +1564,7 @@ async function processAgentStream(
   idleTimeoutMs: number | undefined,
   recordSession: (event: AgentEvent) => void,
   flush: (state: RunState) => Promise<void>,
+  onCard?: (card: unknown) => Promise<void>,
 ): Promise<RunState> {
   const runStart = Date.now();
   let state: RunState = initialState;
@@ -1617,6 +1621,17 @@ async function processAgentStream(
       }
       armOrPauseIdle();
 
+      if (evt.type === 'card') {
+        // Fork delta: backend-issued interactive card — deliver verbatim to the chat.
+        if (onCard) {
+          try {
+            await onCard(evt.card);
+          } catch (err) {
+            log.warn('agent', 'card-deliver-failed', { scope, err: String(err) });
+          }
+        }
+        continue;
+      }
       if (evt.type === 'system') {
         recordSession(evt);
         continue;
