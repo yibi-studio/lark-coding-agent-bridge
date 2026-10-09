@@ -149,11 +149,17 @@ export async function handleCardAction(deps: CardDispatchDeps): Promise<void> {
       chatId,
       senderId: operatorId,
     });
+    if (r.card) {
+      // Action carries a follow-up card (e.g. session-list pagination) — deliver verbatim.
+      await deps.channel.send(chatId, { card: r.card as object }).catch((err) =>
+        log.warn('cardAction', 'typhia-card-failed', { err: String(err) }),
+      );
+    }
     if (r.toast) {
       await deps.channel.send(chatId, { text: r.toast }).catch((err) =>
         log.warn('cardAction', 'typhia-feedback-failed', { err: String(err) }),
       );
-    } else if (!r.ok) {
+    } else if (!r.ok && !r.card) {
       log.warn('cardAction', 'typhia-forward-failed', { scope });
     }
     return;

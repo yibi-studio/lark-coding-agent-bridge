@@ -172,7 +172,7 @@ export class TyphiaAdapter implements AgentAdapter {
 export async function forwardCardAction(
   adapter: TyphiaAdapter,
   input: { value: unknown; chatId: string; senderId: string },
-): Promise<{ ok: boolean; toast?: string }> {
+): Promise<{ ok: boolean; toast?: string; card?: unknown }> {
   const token = (adapter as unknown as { token?: string }).token;
   const daemonUrl = (adapter as unknown as { daemonUrl: string }).daemonUrl;
   const fetchImpl = (adapter as unknown as { fetchImpl: typeof fetch }).fetchImpl;
@@ -188,8 +188,8 @@ export async function forwardCardAction(
       signal: AbortSignal.timeout(15000),
     });
     if (!r.ok) return { ok: false };
-    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; toast?: string };
-    return { ok: j.ok !== false, toast: typeof j.toast === 'string' ? j.toast : undefined };
+    const j = (await r.json().catch(() => ({}))) as { ok?: boolean; toast?: string; card?: unknown };
+    return { ok: j.ok !== false, toast: typeof j.toast === 'string' ? j.toast : undefined, card: j.card ?? undefined };
   } catch {
     return { ok: false };
   }
