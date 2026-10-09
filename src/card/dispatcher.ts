@@ -149,13 +149,27 @@ export async function handleCardAction(deps: CardDispatchDeps): Promise<void> {
       chatId,
       senderId: operatorId,
     });
+    let updatedInPlace = false;
     if (r.card) {
-      // Action carries a follow-up card (e.g. session-list pagination) — deliver verbatim.
-      await deps.channel.send(chatId, { card: r.card as object }).catch((err) =>
-        log.warn('cardAction', 'typhia-card-failed', { err: String(err) }),
-      );
+      // cardUpdate: re-render the clicked card in place (state cards — current
+      // marker moves, pagination flips). Fallback: send as a new message.
+      if (r.cardUpdate && typeof deps.evt.messageId === 'string') {
+        updatedInPlace = await deps.channel
+          .updateCard(deps.evt.messageId, r.card as object)
+          .then(() => true)
+          .catch((err) => {
+            log.warn('cardAction', 'typhia-card-update-failed', { err: String(err) });
+            return false;
+          });
+      }
+      if (!updatedInPlace) {
+        await deps.channel.send(chatId, { card: r.card as object }).catch((err) =>
+          log.warn('cardAction', 'typhia-card-failed', { err: String(err) }),
+        );
+      }
     }
-    if (r.toast) {
+    if (r.toast && !updatedInPlace) {
+      // In-place update IS the feedback; text toast only when no update happened.
       await deps.channel.send(chatId, { text: r.toast }).catch((err) =>
         log.warn('cardAction', 'typhia-feedback-failed', { err: String(err) }),
       );
