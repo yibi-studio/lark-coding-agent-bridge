@@ -1108,7 +1108,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
           recordSession,
           async () => {},
           async (card) => {
-            await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
+            await deliverBackendCard(channel, chatId, card, sendOpts);
           },
         );
         await cotDone;
@@ -1173,7 +1173,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
           }
         },
         async (card) => {
-          await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
+          await deliverBackendCard(channel, chatId, card, sendOpts);
         },
       );
       try {
@@ -1241,7 +1241,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
           }
         },
         async (card) => {
-          await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
+          await deliverBackendCard(channel, chatId, card, sendOpts);
         },
       );
       try {
@@ -1286,7 +1286,7 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
         recordSession,
         async () => {},
         async (card) => {
-          await sendManagedCard(channel, chatId, card as object, { replyTo: sendOpts?.replyTo, replyInThread: sendOpts?.replyInThread === true });
+          await deliverBackendCard(channel, chatId, card, sendOpts);
         },
       );
       await sendFinalReply({
@@ -1567,6 +1567,26 @@ function outboundLogFields(
  * on every state transition. Used by both card and markdown reply modes —
  * the only difference between the two is what `flush` does with the state.
  */
+// Fork delta: backend card delivery — CardKit managed (live in-place updates)
+// preferred; raw send fallback when the app lacks cardkit.card.create (cards
+// still arrive; updates then ride raw PATCH, which clients may refresh lazily).
+async function deliverBackendCard(
+  channel: LarkChannel,
+  chatId: string,
+  card: unknown,
+  sendOpts: { replyTo?: string; replyInThread?: boolean } | undefined,
+): Promise<void> {
+  try {
+    await sendManagedCard(channel, chatId, card as object, {
+      replyTo: sendOpts?.replyTo,
+      replyInThread: sendOpts?.replyInThread === true,
+    });
+  } catch (err) {
+    log.warn('agent', 'card-managed-fallback-raw', { err: String(err) });
+    await channel.send(chatId, { card: card as object }, sendOpts);
+  }
+}
+
 async function processAgentStream(
   handle: RunHandle,
   events: AsyncIterable<AgentEvent>,
