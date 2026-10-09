@@ -81,7 +81,7 @@ describe('TyphiaAdapter', () => {
       const got: AgentEvent[] = [];
       for await (const e of run.events) got.push(e);
       const last = got[got.length - 1];
-      expect(last.type === 'error' && last.terminationReason === 'failed').toBe(true);
+      expect(Boolean(last && last.type === 'error' && last.terminationReason === 'failed')).toBe(true);
     } finally {
       srv.close();
     }

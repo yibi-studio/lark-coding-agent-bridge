@@ -17,6 +17,7 @@ export interface RunExecutorDeps {
 
 export interface SubmitRunInput {
   scopeId: string;
+  rawText?: string;
   ctx?: AgentRunContext;
   policy: RunPolicyAllow;
   sessionId?: string;
@@ -97,6 +98,7 @@ export class RunExecutor {
     const runOptions = {
       runId,
       prompt: input.policy.prompt,
+      rawText: input.rawText,
       ctx: input.ctx,
       cwd: input.policy.cwdRealpath,
       sessionId: input.sessionId,

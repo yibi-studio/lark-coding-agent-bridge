@@ -960,8 +960,14 @@ async function runAgentBatch(deps: RunBatchDeps): Promise<void> {
     controls.profileConfig.agentKind === 'codex'
       ? codexCapability(controls.profileConfig)
       : claudeCapability(controls.profileConfig);
+  const rawFileKeys = batch.flatMap((m) => m.resources.map((r) => r.fileKey));
+  const rawText = batch
+    .map((m) => stripAttachmentRefs(m.content, rawFileKeys).trim())
+    .filter(Boolean)
+    .join('\n\n');
   const flow = await startRunFlow({
     scopeId: scope,
+    rawText,
     scope: scopeContext,
     prompt,
     attachments: attachments.map(toPolicyAttachment),

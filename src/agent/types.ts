@@ -41,6 +41,8 @@ export interface AgentRunContext {
 export interface AgentRunOptions {
   runId: string;
   prompt: string;
+  /** Fork delta: verbatim user text (pre-wrapper) — command backends dispatch on this. */
+  rawText?: string;
   ctx?: AgentRunContext;
   cwd?: string;
   sessionId?: string;

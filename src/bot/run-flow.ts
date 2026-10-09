@@ -23,6 +23,7 @@ import type { WorkspaceStore } from '../workspace/store';
 
 export interface StartRunFlowInput {
   scopeId: string;
+  rawText?: string;
   scope: ScopeContext;
   prompt: string;
   attachments: AgentAttachment[];
@@ -141,6 +142,7 @@ export async function startRunFlow(input: StartRunFlowInput): Promise<StartRunFl
   try {
     execution = await input.executor.submit({
       scopeId: input.scopeId,
+      rawText: input.rawText,
       ctx: {
         chatId: input.scope.chatId,
         threadId: input.scope.threadId,

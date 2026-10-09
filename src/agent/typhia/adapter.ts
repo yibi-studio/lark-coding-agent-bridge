@@ -95,6 +95,7 @@ export class TyphiaAdapter implements AgentAdapter {
           body: JSON.stringify({
             runId: opts.runId,
             prompt: opts.prompt,
+            rawText: opts.rawText,
             sessionId: opts.sessionId,
             images: opts.images,
             ctx: opts.ctx,
